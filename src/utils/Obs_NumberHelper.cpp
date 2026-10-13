@@ -43,7 +43,7 @@ size_t Utils::Obs::NumberHelper::GetSceneCount()
 
 size_t Utils::Obs::NumberHelper::GetCanvasSceneCount(obs_canvas_t *canvas)
 {
-	size_t ret;
+	size_t ret = 0;
 	auto sceneEnumProc = [](void *param, obs_source_t *scene) {
 		auto ret = static_cast<size_t *>(param);
 
