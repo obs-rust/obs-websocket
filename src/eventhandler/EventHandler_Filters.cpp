@@ -49,6 +49,19 @@ void EventHandler::FilterRemoveMultiHandler(void *param, calldata_t *data)
 	eventHandler->HandleSourceFilterRemoved(source, filter);
 }
 
+// Filters are private sources, so their settings changes come from the filter's
+// own "update" signal, never the core "source_update" signal.
+void EventHandler::SourceFilterUpdatedHandler(void *param, calldata_t *data)
+{
+	auto eventHandler = static_cast<EventHandler *>(param);
+
+	obs_source_t *filter = GetCalldataPointer<obs_source_t>(data, "source");
+	if (!filter)
+		return;
+
+	eventHandler->HandleSourceFilterSettingsChanged(filter);
+}
+
 /**
  * A source's filter list has been reindexed.
  *
