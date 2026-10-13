@@ -30,6 +30,53 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include "../utils/Platform.h"
 #include "../utils/Compat.h"
 
+namespace {
+
+	constexpr size_t MaxIncomingMessageSize = 16 * 1024 * 1024;
+	constexpr size_t MaxIncomingMessageDepth = 128;
+
+	class DepthCheckSax : public nlohmann::detail::json_sax_acceptor<json> {
+	public:
+		bool start_object(size_t) { return EnterContainer(); }
+		bool start_array(size_t) { return EnterContainer(); }
+		bool end_object()
+		{
+			--depth;
+			return true;
+		}
+		bool end_array()
+		{
+			--depth;
+			return true;
+		}
+
+		bool exceeded = false;
+
+	private:
+		bool EnterContainer()
+		{
+			exceeded = ++depth > MaxIncomingMessageDepth;
+			return !exceeded;
+		}
+
+		size_t depth = 0;
+	};
+
+	bool IsTooDeep(const std::string &payload, json::input_format_t format)
+	{
+		DepthCheckSax sax;
+		// Abort before nlohmann's recursive MsgPack reader can exhaust the stack.
+		// Malformed input still goes through the normal parser for its close reason.
+		try {
+			json::sax_parse(payload, &sax, format);
+		} catch (const json::exception &) {
+			return false;
+		}
+		return sax.exceeded;
+	}
+
+} // namespace
+
 WebSocketServer::WebSocketServer() : QObject(nullptr)
 {
 	_server.get_alog().clear_channels(websocketpp::log::alevel::all);
@@ -367,6 +414,10 @@ void WebSocketServer::onMessage(websocketpp::connection_hdl hdl,
 		// Check for invalid opcode and decode
 		websocketpp::lib::error_code errorCode;
 		uint8_t sessionEncoding = session->Encoding();
+		if (payload.size() > MaxIncomingMessageSize) {
+			_server.close(hdl, WebSocketCloseCode::MessageDecodeError, "Message exceeds the size limit.", errorCode);
+			return;
+		}
 		if (sessionEncoding == WebSocketEncoding::Json) {
 			if (opCode != websocketpp::frame::opcode::text) {
 				_server.close(hdl, WebSocketCloseCode::MessageDecodeError,
@@ -374,10 +425,15 @@ void WebSocketServer::onMessage(websocketpp::connection_hdl hdl,
 					      errorCode);
 				return;
 			}
+			if (IsTooDeep(payload, json::input_format_t::json)) {
+				_server.close(hdl, WebSocketCloseCode::MessageDecodeError, "Json nesting exceeds the depth limit.",
+					      errorCode);
+				return;
+			}
 
 			try {
 				incomingMessage = json::parse(payload);
-			} catch (json::parse_error &e) {
+			} catch (const json::exception &e) {
 				_server.close(hdl, WebSocketCloseCode::MessageDecodeError,
 					      std::string("Unable to decode Json: ") + e.what(), errorCode);
 				return;
@@ -389,10 +445,15 @@ void WebSocketServer::onMessage(websocketpp::connection_hdl hdl,
 					      errorCode);
 				return;
 			}
+			if (IsTooDeep(payload, json::input_format_t::msgpack)) {
+				_server.close(hdl, WebSocketCloseCode::MessageDecodeError,
+					      "MsgPack nesting exceeds the depth limit.", errorCode);
+				return;
+			}
 
 			try {
 				incomingMessage = json::from_msgpack(payload);
-			} catch (json::parse_error &e) {
+			} catch (const json::exception &e) {
 				_server.close(hdl, WebSocketCloseCode::MessageDecodeError,
 					      std::string("Unable to decode MsgPack: ") + e.what(), errorCode);
 				return;
