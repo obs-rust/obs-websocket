@@ -227,7 +227,8 @@ RequestResult RequestHandler::GetSourceScreenshot(const Request &request)
 
 	buffer.close();
 
-	QString encodedPicture = QString("data:image/%1;base64,").arg(imageFormat.c_str()).append(encodedImgBytes.toBase64());
+	QString encodedPicture =
+		QString("data:%1;base64,").arg(Utils::ImageFormat::MimeType(imageFormat).c_str()).append(encodedImgBytes.toBase64());
 
 	json responseData;
 	responseData["imageData"] = encodedPicture.toStdString();
