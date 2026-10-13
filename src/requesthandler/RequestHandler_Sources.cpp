@@ -24,6 +24,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include <QDir>
 
 #include "RequestHandler.h"
+#include "../utils/ImageFormat.h"
 
 QImage TakeSourceScreenshot(obs_source_t *source, bool &success, uint32_t requestedWidth = 0, uint32_t requestedHeight = 0)
 {
