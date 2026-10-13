@@ -471,14 +471,18 @@ RequestResult RequestHandler::SetSceneItemTransform(const Request &request)
 		transformChanged = true;
 	}
 
+	// Bounds that are in use need a size. Unused bounds (OBS_BOUNDS_NONE) may be 0,
+	// which is what GetSceneItemTransform reports for an item whose bounds were never set.
+	double minBounds = sceneItemTransform.bounds_type == OBS_BOUNDS_NONE ? 0.0 : 1.0;
+
 	if (r.Contains("boundsWidth")) {
-		if (!r.ValidateOptionalNumber("boundsWidth", statusCode, comment, 1.0, 90001.0))
+		if (!r.ValidateOptionalNumber("boundsWidth", statusCode, comment, minBounds, 90001.0))
 			return RequestResult::Error(statusCode, comment);
 		sceneItemTransform.bounds.x = r.RequestData["boundsWidth"];
 		transformChanged = true;
 	}
 	if (r.Contains("boundsHeight")) {
-		if (!r.ValidateOptionalNumber("boundsHeight", statusCode, comment, 1.0, 90001.0))
+		if (!r.ValidateOptionalNumber("boundsHeight", statusCode, comment, minBounds, 90001.0))
 			return RequestResult::Error(statusCode, comment);
 		sceneItemTransform.bounds.y = r.RequestData["boundsHeight"];
 		transformChanged = true;
