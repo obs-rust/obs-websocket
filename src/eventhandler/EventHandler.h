@@ -154,7 +154,8 @@ private:
 	static void FilterAddMultiHandler(void *param,
 					  calldata_t *data); // Direct callback
 	static void FilterRemoveMultiHandler(void *param,
-					     calldata_t *data); // Direct callback
+					     calldata_t *data);                // Direct callback
+	static void SourceFilterUpdatedHandler(void *param, calldata_t *data); // Direct callback
 	static void HandleSourceFilterListReindexed(void *param,
 						    calldata_t *data); // Direct callback
 	void HandleSourceFilterCreated(obs_source_t *source, obs_source_t *filter);

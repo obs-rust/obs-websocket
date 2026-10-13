@@ -181,6 +181,9 @@ void EventHandler::ConnectSourceSignals(obs_source_t *source) // Applies to inpu
 	if (sourceType == OBS_SOURCE_TYPE_FILTER) {
 		signal_handler_connect(sh, "enable", HandleSourceFilterEnableStateChanged, this);
 		signal_handler_connect(sh, "rename", HandleSourceFilterNameChanged, this);
+		// Filters are always private, and libobs fires no core signals (such as
+		// "source_update") for private sources, so listen on the filter itself.
+		signal_handler_connect(sh, "update", SourceFilterUpdatedHandler, this);
 	}
 }
 
@@ -250,6 +253,7 @@ void EventHandler::DisconnectSourceSignals(obs_source_t *source)
 	if (sourceType == OBS_SOURCE_TYPE_FILTER) {
 		signal_handler_disconnect(sh, "enable", HandleSourceFilterEnableStateChanged, this);
 		signal_handler_disconnect(sh, "rename", HandleSourceFilterNameChanged, this);
+		signal_handler_disconnect(sh, "update", SourceFilterUpdatedHandler, this);
 	}
 }
 
@@ -595,9 +599,6 @@ void EventHandler::SourceUpdatedMultiHandler(void *param, calldata_t *data)
 	switch (obs_source_get_type(source)) {
 	case OBS_SOURCE_TYPE_INPUT:
 		eventHandler->HandleInputSettingsChanged(source);
-		break;
-	case OBS_SOURCE_TYPE_FILTER:
-		eventHandler->HandleSourceFilterSettingsChanged(source);
 		break;
 	default:
 		break;
