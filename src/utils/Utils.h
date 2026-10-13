@@ -20,6 +20,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #pragma once
 
 #include "Crypto.h"
+#include "ImageFormat.h"
 #include "Json.h"
 #include "Obs.h"
 #include "Obs_VolumeMeter.h"

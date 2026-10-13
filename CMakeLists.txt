@@ -111,6 +111,8 @@ target_sources(
           src/utils/Compat.h
           src/utils/Crypto.cpp
           src/utils/Crypto.h
+          src/utils/ImageFormat.cpp
+          src/utils/ImageFormat.h
           src/utils/Json.cpp
           src/utils/Json.h
           src/utils/Obs.cpp
