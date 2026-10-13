@@ -29,7 +29,11 @@ json Utils::Obs::ObjectHelper::GetStats()
 
 	std::string outputPath = Utils::Obs::StringHelper::GetCurrentRecordOutputPath();
 
-	video_t *video = obs_get_video();
+	/* Rescaled encoders (Rescale Output) render from mixes of their own,
+	 * which obs_get_video() doesn't include. */
+	uint32_t outputTotalFrames = 0;
+	uint32_t outputSkippedFrames = 0;
+	obs_get_video_frame_counts(&outputTotalFrames, &outputSkippedFrames);
 
 	ret["cpuUsage"] = os_cpu_usage_info_query(GetCpuUsageInfo());
 	ret["memoryUsage"] = (double)os_get_proc_resident_size() / (1024.0 * 1024.0);
@@ -38,8 +42,8 @@ json Utils::Obs::ObjectHelper::GetStats()
 	ret["averageFrameRenderTime"] = (double)obs_get_average_frame_time_ns() / 1000000.0;
 	ret["renderSkippedFrames"] = obs_get_lagged_frames();
 	ret["renderTotalFrames"] = obs_get_total_frames();
-	ret["outputSkippedFrames"] = video_output_get_skipped_frames(video);
-	ret["outputTotalFrames"] = video_output_get_total_frames(video);
+	ret["outputSkippedFrames"] = outputSkippedFrames;
+	ret["outputTotalFrames"] = outputTotalFrames;
 
 	return ret;
 }
