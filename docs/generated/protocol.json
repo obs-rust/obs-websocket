@@ -1857,6 +1857,11 @@
           "valueDescription": "Total number of frames outputted by the output thread"
         },
         {
+          "valueName": "gpuAcceleration",
+          "valueType": "Object",
+          "valueDescription": "GPU acceleration status (`state` green/yellow/red, `adapter`, `detectedGpus`, `summary`, `causes`), or null when the frontend does not report it"
+        },
+        {
           "valueName": "webSocketSessionIncomingMessages",
           "valueType": "Number",
           "valueDescription": "Total number of messages received by obs-websocket from the client"

@@ -45,6 +45,20 @@ json Utils::Obs::ObjectHelper::GetStats()
 	ret["outputSkippedFrames"] = outputSkippedFrames;
 	ret["outputTotalFrames"] = outputTotalFrames;
 
+	/* GPU acceleration status from the frontend (obs-rust/obs-studio#846):
+	 * null when the frontend does not provide it. */
+	ret["gpuAcceleration"] = nullptr;
+	calldata_t cd = {0};
+	if (proc_handler_call(obs_get_proc_handler(), "get_gpu_status", &cd)) {
+		const char *status = calldata_string(&cd, "json");
+		if (status) {
+			json parsed = json::parse(status, nullptr, false);
+			if (!parsed.is_discarded())
+				ret["gpuAcceleration"] = parsed;
+		}
+	}
+	calldata_free(&cd);
+
 	return ret;
 }
 

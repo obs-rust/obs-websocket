@@ -77,6 +77,7 @@ RequestResult RequestHandler::GetVersion(const Request &)
  * @responseField renderTotalFrames                | Number | Total number of frames outputted by the render thread
  * @responseField outputSkippedFrames              | Number | Number of frames skipped by OBS in the output thread
  * @responseField outputTotalFrames                | Number | Total number of frames outputted by the output thread
+ * @responseField gpuAcceleration                  | Object | GPU acceleration status (`state` green/yellow/red, `adapter`, `detectedGpus`, `summary`, `causes`), or null when the frontend does not report it
  * @responseField webSocketSessionIncomingMessages | Number | Total number of messages received by obs-websocket from the client
  * @responseField webSocketSessionOutgoingMessages | Number | Total number of messages sent by obs-websocket to the client
  *
