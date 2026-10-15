@@ -2870,6 +2870,7 @@ Gets statistics about OBS, obs-websocket, and the current session.
 | renderTotalFrames | Number | Total number of frames outputted by the render thread |
 | outputSkippedFrames | Number | Number of frames skipped by OBS in the output thread |
 | outputTotalFrames | Number | Total number of frames outputted by the output thread |
+| gpuAcceleration | Object | GPU acceleration status (`state` green/yellow/red, `adapter`, `detectedGpus`, `summary`, `causes`), or null when the frontend does not report it |
 | webSocketSessionIncomingMessages | Number | Total number of messages received by obs-websocket from the client |
 | webSocketSessionOutgoingMessages | Number | Total number of messages sent by obs-websocket to the client |
 
