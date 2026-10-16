@@ -24,6 +24,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include <obs.hpp>
 
 #include "SettingsDialog.h"
+#include "SessionDuration.h"
 #include "../obs-websocket.h"
 #include "../Config.h"
 #include "../websocketserver/WebSocketServer.h"
@@ -248,8 +249,8 @@ void SettingsDialog::FillSessionTable()
 		QTableWidgetItem *addressItem = new QTableWidgetItem(QString::fromStdString(session.remoteAddress));
 		ui->websocketSessionTable->setItem(i, 0, addressItem);
 
-		uint64_t sessionDuration = QDateTime::currentSecsSinceEpoch() - session.connectedAt;
-		QTableWidgetItem *durationItem = new QTableWidgetItem(QTime(0, 0, sessionDuration).toString("hh:mm:ss"));
+		qint64 sessionDuration = QDateTime::currentSecsSinceEpoch() - static_cast<qint64>(session.connectedAt);
+		QTableWidgetItem *durationItem = new QTableWidgetItem(FormatSessionDuration(sessionDuration));
 		ui->websocketSessionTable->setItem(i, 1, durationItem);
 
 		QTableWidgetItem *statsItem =
