@@ -19,7 +19,6 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include <QMessageBox>
 #include <QDateTime>
-#include <QTime>
 #include <obs-module.h>
 #include <obs.hpp>
 

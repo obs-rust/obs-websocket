@@ -20,10 +20,17 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #pragma once
 
 #include <QString>
-#include <QTime>
 
-// The Session Duration column of the settings dialog's session table.
+// The Session Duration column of the settings dialog's session table:
+// hh:mm:ss, with the hours counting on past 24. Not QTime: QTime(0, 0, s)
+// is invalid from 60 seconds on, and QTime::addSecs() wraps at 24 hours.
 static inline QString FormatSessionDuration(qint64 seconds)
 {
-	return QTime(0, 0, static_cast<int>(seconds)).toString("hh:mm:ss");
+	if (seconds < 0)
+		seconds = 0;
+	const QChar zero('0');
+	return QString("%1:%2:%3")
+		.arg(seconds / 3600, 2, 10, zero)
+		.arg(seconds / 60 % 60, 2, 10, zero)
+		.arg(seconds % 60, 2, 10, zero);
 }
