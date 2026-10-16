@@ -46,12 +46,18 @@ struct SerialFrameBatch {
 
 struct ParallelBatchResults {
 	RequestHandler &requestHandler;
+	// One slot per request, in request order
 	std::vector<RequestResult> results;
+	size_t finishedCount = 0;
 
 	std::mutex conditionMutex;
 	std::condition_variable condition;
 
-	ParallelBatchResults(RequestHandler &requestHandler) : requestHandler(requestHandler) {}
+	ParallelBatchResults(RequestHandler &requestHandler, size_t requestCount)
+		: requestHandler(requestHandler),
+		  results(requestCount)
+	{
+	}
 };
 
 // `{"inputName": "inputNameVariable"}` is essentially `inputName = inputNameVariable`
@@ -203,27 +209,31 @@ RequestBatchHandler::ProcessRequestBatch(QThreadPool &threadPool, SessionPtr ses
 
 		return serialFrameBatch.results;
 	} else if (executionType == RequestBatchExecutionType::Parallel) {
-		ParallelBatchResults parallelResults(requestHandler);
+		size_t requestCount = requests.size();
+		ParallelBatchResults parallelResults(requestHandler, requestCount);
 
 		// Acquire the lock early to prevent the batch from finishing before we're ready
 		std::unique_lock<std::mutex> lock(parallelResults.conditionMutex);
 
-		// Submit each request as a task to the thread pool to be processed ASAP
-		for (auto &request : requests) {
-			threadPool.start(Utils::Compat::CreateFunctionRunnable([&parallelResults, &request]() {
+		// Submit each request as a task to the thread pool to be processed ASAP.
+		// Each task stores its result at its request's index, so the results stay
+		// in request order whatever order the requests finish in.
+		for (size_t i = 0; i < requestCount; i++) {
+			RequestBatchRequest &request = requests[i];
+			threadPool.start(Utils::Compat::CreateFunctionRunnable([&parallelResults, &request, i]() {
 				RequestResult requestResult = parallelResults.requestHandler.ProcessRequest(request);
 
 				std::unique_lock<std::mutex> lock(parallelResults.conditionMutex);
-				parallelResults.results.push_back(requestResult);
+				parallelResults.results[i] = requestResult;
+				parallelResults.finishedCount++;
 				lock.unlock();
 				parallelResults.condition.notify_one();
 			}));
 		}
 
 		// Wait for the last request to finish processing
-		size_t requestCount = requests.size();
 		parallelResults.condition.wait(lock, [&parallelResults, requestCount] {
-			return parallelResults.results.size() == requestCount;
+			return parallelResults.finishedCount == requestCount;
 		});
 
 		return parallelResults.results;
