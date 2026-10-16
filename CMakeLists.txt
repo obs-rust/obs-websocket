@@ -39,6 +39,7 @@ target_sources(
           src/forms/ConnectInfo.cpp
           src/forms/ConnectInfo.h
           src/forms/resources.qrc
+          src/forms/SessionDuration.h
           src/forms/SettingsDialog.cpp
           src/forms/SettingsDialog.h
           src/obs-websocket.cpp
