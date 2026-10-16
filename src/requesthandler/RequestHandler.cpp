@@ -22,6 +22,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #endif
 
 #include "RequestHandler.h"
+#include "SceneCollectionChanges.h"
 
 const std::unordered_map<std::string, RequestMethodHandler> RequestHandler::_handlerMap{
 	// General
@@ -226,7 +227,14 @@ RequestResult RequestHandler::ProcessRequest(const Request &request)
 		return RequestResult::Error(RequestStatus::UnknownRequestType, "Your request type is not valid.");
 	}
 
-	return std::bind(handler, this, std::placeholders::_1)(request);
+	RequestResult result = std::bind(handler, this, std::placeholders::_1)(request);
+
+	// Save the scene collection, as the UI does after the same change. Queued for
+	// the UI thread without waiting: a burst of requests results in one save.
+	if (result.StatusCode == RequestStatus::Success && RequestChangesSceneCollection(request.RequestType))
+		obs_queue_task(OBS_TASK_UI, [](void *) { obs_frontend_save(); }, nullptr, false);
+
+	return result;
 }
 
 std::vector<std::string> RequestHandler::GetRequestList()
