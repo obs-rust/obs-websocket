@@ -112,8 +112,8 @@ RequestResult RequestHandler::GetGroupList(const Request &request)
  *
  * Note 2: Canvases do not have any concept of a program or preview scene, so this request does not support canvases.
  *
- * @responseField sceneName               | String | Current program scene name
- * @responseField sceneUuid               | String | Current program scene UUID
+ * @responseField sceneName               | String | Current program scene name. `null` if there is no program scene
+ * @responseField sceneUuid               | String | Current program scene UUID. `null` if there is no program scene
  * @responseField currentProgramSceneName | String | Current program scene name (Deprecated)
  * @responseField currentProgramSceneUuid | String | Current program scene UUID (Deprecated)
  *
@@ -128,8 +128,14 @@ RequestResult RequestHandler::GetCurrentProgramScene(const Request &)
 {
 	json responseData;
 	OBSSourceAutoRelease currentProgramScene = obs_frontend_get_current_scene();
-	responseData["sceneName"] = responseData["currentProgramSceneName"] = obs_source_get_name(currentProgramScene);
-	responseData["sceneUuid"] = responseData["currentProgramSceneUuid"] = obs_source_get_uuid(currentProgramScene);
+	// NULL when the program scene was removed in studio mode (the frontend keeps a weak reference to it).
+	if (currentProgramScene) {
+		responseData["sceneName"] = responseData["currentProgramSceneName"] = obs_source_get_name(currentProgramScene);
+		responseData["sceneUuid"] = responseData["currentProgramSceneUuid"] = obs_source_get_uuid(currentProgramScene);
+	} else {
+		responseData["sceneName"] = responseData["currentProgramSceneName"] = nullptr;
+		responseData["sceneUuid"] = responseData["currentProgramSceneUuid"] = nullptr;
+	}
 
 	return RequestResult::Success(responseData);
 }
@@ -173,8 +179,8 @@ RequestResult RequestHandler::SetCurrentProgramScene(const Request &request)
  *
  * Note: This request is slated to have the `currentPreview`-prefixed fields removed from in an upcoming RPC version.
  *
- * @responseField sceneName               | String | Current preview scene name
- * @responseField sceneUuid               | String | Current preview scene UUID
+ * @responseField sceneName               | String | Current preview scene name. `null` if there is no preview scene
+ * @responseField sceneUuid               | String | Current preview scene UUID. `null` if there is no preview scene
  * @responseField currentPreviewSceneName | String | Current preview scene name
  * @responseField currentPreviewSceneUuid | String | Current preview scene UUID
  *
@@ -193,8 +199,13 @@ RequestResult RequestHandler::GetCurrentPreviewScene(const Request &)
 	OBSSourceAutoRelease currentPreviewScene = obs_frontend_get_current_preview_scene();
 
 	json responseData;
-	responseData["sceneName"] = responseData["currentPreviewSceneName"] = obs_source_get_name(currentPreviewScene);
-	responseData["sceneUuid"] = responseData["currentPreviewSceneUuid"] = obs_source_get_uuid(currentPreviewScene);
+	if (currentPreviewScene) {
+		responseData["sceneName"] = responseData["currentPreviewSceneName"] = obs_source_get_name(currentPreviewScene);
+		responseData["sceneUuid"] = responseData["currentPreviewSceneUuid"] = obs_source_get_uuid(currentPreviewScene);
+	} else {
+		responseData["sceneName"] = responseData["currentPreviewSceneName"] = nullptr;
+		responseData["sceneUuid"] = responseData["currentPreviewSceneUuid"] = nullptr;
+	}
 
 	return RequestResult::Success(responseData);
 }
