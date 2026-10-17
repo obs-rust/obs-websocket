@@ -128,6 +128,8 @@ target_sources(
           src/utils/Obs_VolumeMeter_Helpers.h
           src/utils/Platform.cpp
           src/utils/Platform.h
+          src/utils/SourceScreenshot.cpp
+          src/utils/SourceScreenshot.h
           src/utils/Utils.h)
 
 configure_file(src/plugin-macros.h.in plugin-macros.generated.h)
