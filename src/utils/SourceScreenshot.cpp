@@ -73,9 +73,21 @@ QImage Utils::TakeSourceScreenshot(obs_source_t *source, bool &success, uint32_t
 		gs_blend_state_push();
 		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
 
+		// libobs keeps high-bit-depth sources (P010, I010, I210, I412: HEVC Main10, ProRes, 10-bit
+		// capture cards) as linear float. Scenes and the frontend previews draw with linear sRGB
+		// on, which encodes them to sRGB in an 8-bit target; without it the screenshot is stored
+		// linear and comes out too dark. 8-bit sRGB sources keep the direct path, so their pixels
+		// and straight alpha stay as they were.
+		const enum gs_color_space preferredSpaces[] = {GS_CS_SRGB, GS_CS_SRGB_16F, GS_CS_709_EXTENDED};
+		const enum gs_color_space sourceSpace =
+			obs_source_get_color_space(source, OBS_COUNTOF(preferredSpaces), preferredSpaces);
+		const bool previousLinearSrgb = gs_set_linear_srgb(sourceSpace != GS_CS_SRGB);
+
 		obs_source_inc_showing(source);
 		obs_source_video_render(source);
 		obs_source_dec_showing(source);
+
+		gs_set_linear_srgb(previousLinearSrgb);
 
 		gs_blend_state_pop();
 		gs_texrender_end(texRender);
