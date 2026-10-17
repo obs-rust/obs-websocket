@@ -267,14 +267,19 @@ std::vector<json> Utils::Obs::ArrayHelper::GetListPropertyItems(obs_property_t *
 
 	for (size_t i = 0; i < itemCount; i++) {
 		json itemData;
-		itemData["itemName"] = obs_property_list_item_name(property, i);
+		// libobs keeps list items as they were added, and a NULL name or string value
+		// would throw std::logic_error from json and abort OBS. The macOS Screen Capture
+		// source puts a placeholder with a NULL value at the top of its lists.
+		const char *itemName = obs_property_list_item_name(property, i);
+		itemData["itemName"] = itemName ? itemName : "";
 		itemData["itemEnabled"] = !obs_property_list_item_disabled(property, i);
 		if (itemFormat == OBS_COMBO_FORMAT_INT) {
 			itemData["itemValue"] = obs_property_list_item_int(property, i);
 		} else if (itemFormat == OBS_COMBO_FORMAT_FLOAT) {
 			itemData["itemValue"] = obs_property_list_item_float(property, i);
 		} else if (itemFormat == OBS_COMBO_FORMAT_STRING) {
-			itemData["itemValue"] = obs_property_list_item_string(property, i);
+			const char *itemValue = obs_property_list_item_string(property, i);
+			itemData["itemValue"] = itemValue ? itemValue : "";
 		} else {
 			itemData["itemValue"] = nullptr;
 		}
