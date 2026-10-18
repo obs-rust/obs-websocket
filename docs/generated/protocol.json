@@ -1814,7 +1814,7 @@
         {
           "valueName": "cpuUsage",
           "valueType": "Number",
-          "valueDescription": "Current CPU usage in percent"
+          "valueDescription": "CPU usage of OBS in percent since this client's previous `GetStats` (since it connected, for the first)"
         },
         {
           "valueName": "memoryUsage",
