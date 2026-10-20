@@ -23,6 +23,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include <string>
 #include <atomic>
 #include <memory>
+#include <util/platform.h>
 
 #include "../../eventhandler/types/EventSubscription.h"
 #include "plugin-macros.generated.h"
@@ -32,6 +33,16 @@ typedef std::shared_ptr<WebSocketSession> SessionPtr;
 
 class WebSocketSession {
 public:
+	WebSocketSession() : _cpuUsageInfo(os_cpu_usage_info_start()) {}
+	~WebSocketSession() { os_cpu_usage_info_destroy(_cpuUsageInfo); }
+
+	// CPU usage of OBS since this session's previous call, or since it connected
+	inline double CpuUsage()
+	{
+		std::lock_guard<std::mutex> lock(_cpuUsageMutex);
+		return os_cpu_usage_info_query(_cpuUsageInfo);
+	}
+
 	inline std::string RemoteAddress()
 	{
 		std::lock_guard<std::mutex> lock(_remoteAddressMutex);
@@ -106,4 +117,6 @@ private:
 	std::atomic<uint8_t> _rpcVersion = OBS_WEBSOCKET_RPC_VERSION;
 	std::atomic<bool> _isIdentified = false;
 	std::atomic<uint64_t> _eventSubscriptions = EventSubscription::All;
+	std::mutex _cpuUsageMutex;
+	os_cpu_usage_info_t *_cpuUsageInfo;
 };

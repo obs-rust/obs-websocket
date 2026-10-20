@@ -35,7 +35,6 @@ json Utils::Obs::ObjectHelper::GetStats()
 	uint32_t outputSkippedFrames = 0;
 	obs_get_video_frame_counts(&outputTotalFrames, &outputSkippedFrames);
 
-	ret["cpuUsage"] = os_cpu_usage_info_query(GetCpuUsageInfo());
 	ret["memoryUsage"] = (double)os_get_proc_resident_size() / (1024.0 * 1024.0);
 	ret["availableDiskSpace"] = (double)os_get_free_disk_space(outputPath.c_str()) / (1024.0 * 1024.0);
 	ret["activeFps"] = obs_get_active_fps();

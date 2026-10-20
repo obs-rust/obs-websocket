@@ -19,6 +19,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include <QImageWriter>
 #include <QSysInfo>
+#include <mutex>
 
 #include "RequestHandler.h"
 #include "../websocketserver/WebSocketServer.h"
@@ -65,10 +66,15 @@ RequestResult RequestHandler::GetVersion(const Request &)
 	return RequestResult::Success(responseData);
 }
 
+/* The CPU usage state for requests without a session (vendor and script
+ * requests). os_cpu_usage_info_query() updates it, and requests run in
+ * parallel on the thread pool. */
+static std::mutex sharedCpuUsageMutex;
+
 /**
  * Gets statistics about OBS, obs-websocket, and the current session.
  *
- * @responseField cpuUsage                         | Number | Current CPU usage in percent
+ * @responseField cpuUsage                         | Number | CPU usage of OBS in percent since this client's previous `GetStats` (since it connected, for the first)
  * @responseField memoryUsage                      | Number | Amount of memory in MB currently being used by OBS
  * @responseField availableDiskSpace               | Number | Available disk space on the device being used for recording storage
  * @responseField activeFps                        | Number | Current FPS being rendered
@@ -92,10 +98,15 @@ RequestResult RequestHandler::GetStats(const Request &)
 {
 	json responseData = Utils::Obs::ObjectHelper::GetStats();
 
+	/* Each session measures from its own previous GetStats: with one state
+	 * for every client, a client got the usage since any client's call. */
 	if (_session) {
+		responseData["cpuUsage"] = _session->CpuUsage();
 		responseData["webSocketSessionIncomingMessages"] = _session->IncomingMessages();
 		responseData["webSocketSessionOutgoingMessages"] = _session->OutgoingMessages();
 	} else {
+		std::lock_guard<std::mutex> lock(sharedCpuUsageMutex);
+		responseData["cpuUsage"] = os_cpu_usage_info_query(GetCpuUsageInfo());
 		responseData["webSocketSessionIncomingMessages"] = nullptr;
 		responseData["webSocketSessionOutgoingMessages"] = nullptr;
 	}

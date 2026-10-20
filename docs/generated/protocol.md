@@ -2861,7 +2861,7 @@ Gets statistics about OBS, obs-websocket, and the current session.
 
 | Name | Type  | Description |
 | ---- | :---: | ----------- |
-| cpuUsage | Number | Current CPU usage in percent |
+| cpuUsage | Number | CPU usage of OBS in percent since this client's previous `GetStats` (since it connected, for the first) |
 | memoryUsage | Number | Amount of memory in MB currently being used by OBS |
 | availableDiskSpace | Number | Available disk space on the device being used for recording storage |
 | activeFps | Number | Current FPS being rendered |
