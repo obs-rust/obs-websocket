@@ -17,7 +17,35 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
+#include <vector>
+
 #include "RequestHandler.h"
+
+/* libobs removes the scene items of a removed source only when the scene
+ * renders. Prune every scene now, as the frontend does after it removes a
+ * scene. The scenes are collected first, so no enumeration lock is held
+ * while a scene takes its video lock. */
+static bool CollectScene(void *param, obs_source_t *source)
+{
+	static_cast<std::vector<OBSSourceAutoRelease> *>(param)->emplace_back(obs_source_get_ref(source));
+	return true;
+}
+
+static bool CollectCanvasScenes(void *param, obs_canvas_t *canvas)
+{
+	obs_canvas_enum_scenes(canvas, CollectScene, param);
+	return true;
+}
+
+static void PruneAllScenes()
+{
+	std::vector<OBSSourceAutoRelease> scenes;
+	obs_enum_canvases(CollectCanvasScenes, &scenes);
+
+	for (auto &scene : scenes)
+		if (scene && !obs_source_is_group(scene))
+			obs_scene_prune_sources(obs_scene_from_source(scene));
+}
 
 /**
  * Gets an array of all inputs in OBS.
@@ -220,6 +248,7 @@ RequestResult RequestHandler::RemoveInput(const Request &request)
 	// Releasing afterwards guarantees that we don't accidentally destroy the source before
 	// remove if we happen to hold the last ref (very, very rare)
 	obs_source_remove(input);
+	PruneAllScenes();
 
 	return RequestResult::Success();
 }
