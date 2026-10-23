@@ -226,7 +226,9 @@ RequestBatchHandler::ProcessRequestBatch(QThreadPool &threadPool, SessionPtr ses
 				std::unique_lock<std::mutex> lock(parallelResults.conditionMutex);
 				parallelResults.results[i] = requestResult;
 				parallelResults.finishedCount++;
-				lock.unlock();
+				// Notify while holding the lock: once it is released the
+				// waiter may see the last result, return and destroy
+				// parallelResults, so this task must not touch it after.
 				parallelResults.condition.notify_one();
 			}));
 		}
