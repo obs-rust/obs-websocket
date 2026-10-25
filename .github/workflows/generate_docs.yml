@@ -7,6 +7,10 @@ on:
     branches:
       - master
 
+# The repo's default token is read-only; this job pushes docs/generated to master.
+permissions:
+  contents: write
+
 jobs:
   docs-build:
     name: 'Generate docs [Ubuntu]'
