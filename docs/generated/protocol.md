@@ -1615,6 +1615,7 @@ If a plugin or script implements vendor requests or events, documentation is exp
 
 ### CustomEvent
 
+for every client, a client got the usage since any client's call. */
 Custom event emitted by `BroadcastCustomEvent`.
 
 - Complexity Rating: `1/5`
@@ -2851,6 +2852,8 @@ Gets data about the current plugin and RPC version.
 
 ### GetStats
 
+requests). os_cpu_usage_info_query() updates it, and requests run in
+parallel on the thread pool. */
 Gets statistics about OBS, obs-websocket, and the current session.
 
 - Complexity Rating: `2/5`
@@ -3477,8 +3480,8 @@ Note 2: Canvases do not have any concept of a program or preview scene, so this 
 
 | Name | Type  | Description |
 | ---- | :---: | ----------- |
-| sceneName | String | Current program scene name |
-| sceneUuid | String | Current program scene UUID |
+| sceneName | String | Current program scene name. `null` if there is no program scene |
+| sceneUuid | String | Current program scene UUID. `null` if there is no program scene |
 | currentProgramSceneName | String | Current program scene name (Deprecated) |
 | currentProgramSceneUuid | String | Current program scene UUID (Deprecated) |
 
@@ -3517,8 +3520,8 @@ Note: This request is slated to have the `currentPreview`-prefixed fields remove
 
 | Name | Type  | Description |
 | ---- | :---: | ----------- |
-| sceneName | String | Current preview scene name |
-| sceneUuid | String | Current preview scene UUID |
+| sceneName | String | Current preview scene name. `null` if there is no preview scene |
+| sceneUuid | String | Current preview scene UUID. `null` if there is no preview scene |
 | currentPreviewSceneName | String | Current preview scene name |
 | currentPreviewSceneUuid | String | Current preview scene UUID |
 
@@ -3652,6 +3655,9 @@ Sets the scene transition overridden for a scene.
 
 ### GetInputList
 
+renders. Prune every scene now, as the frontend does after it removes a
+scene. The scenes are collected first, so no enumeration lock is held
+while a scene takes its video lock. */
 Gets an array of all inputs in OBS.
 
 - Complexity Rating: `2/5`
