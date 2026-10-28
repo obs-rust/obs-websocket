@@ -19,6 +19,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #pragma once
 
+#include <condition_variable>
 #include <mutex>
 #include <QObject>
 #include <QThreadPool>
@@ -97,6 +98,9 @@ private:
 
 	std::mutex _sessionMutex;
 	std::map<websocketpp::connection_hdl, SessionPtr, std::owner_less<websocketpp::connection_hdl>> _sessions;
+	// Signalled by onClose() after a session leaves `_sessions`, so Stop() can wait
+	// for the map to drain under `_sessionMutex` instead of polling it unlocked.
+	std::condition_variable _sessionsDrained;
 
 	std::atomic<bool> _obsReady = false;
 
