@@ -369,9 +369,19 @@ void WebSocketServer::onClose(websocketpp::connection_hdl hdl)
 {
 	auto conn = _server.get_con_from_hdl(hdl);
 
-	// Get info from the session and then delete it
+	// Get info from the session and then delete it.
+	// `onOpen()` can return after websocketpp accepted the connection (no config, for example),
+	// so a close can arrive for a handle that was never inserted. Look the handle up and read it
+	// without inserting: `operator[]` would default-construct a null `SessionPtr` and the next
+	// line would dereference it.
 	std::unique_lock<std::mutex> lock(_sessionMutex);
-	SessionPtr session = _sessions[hdl];
+	auto sessionIt = _sessions.find(hdl);
+	if (sessionIt == _sessions.end()) {
+		lock.unlock();
+		blog(LOG_INFO, "[WebSocketServer::onClose] Connection closed without a registered session, nothing to clean up.");
+		return;
+	}
+	SessionPtr session = sessionIt->second;
 	uint64_t eventSubscriptions = session->EventSubscriptions();
 	bool isIdentified = session->IsIdentified();
 	uint64_t connectedAt = session->ConnectedAt();
