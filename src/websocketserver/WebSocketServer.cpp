@@ -75,6 +75,24 @@ namespace {
 		return sax.exceeded;
 	}
 
+	// How long Stop() waits for the sessions it asked to close to actually leave
+	// `_sessions` before it gives up and lets the module unload anyway.
+	constexpr auto kSessionDrainTimeout = std::chrono::seconds(5);
+
+	// Caller holds `_sessionMutex`. Names the sessions that are still open, so an
+	// abandoned shutdown says which client it was.
+	std::string DescribeSessions(
+		const std::map<websocketpp::connection_hdl, SessionPtr, std::owner_less<websocketpp::connection_hdl>> &sessions)
+	{
+		std::string description;
+		for (auto const &entry : sessions) {
+			const SessionPtr &session = entry.second;
+			if (!description.empty())
+				description += ", ";
+			description += session ? session->RemoteAddress() : std::string("<unknown>");
+		}
+		return description.empty() ? std::string("<none>") : description;
+	}
 } // namespace
 
 WebSocketServer::WebSocketServer() : QObject(nullptr)
@@ -202,8 +220,15 @@ void WebSocketServer::Stop()
 	_threadPool.waitForDone();
 
 	// This can delay the thread that it is running on. Bad but kinda required.
-	while (_sessions.size() > 0)
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	// The predicate is read under `_sessionMutex` (onClose erases under it and then
+	// notifies), and the wait is bounded: a client that never answers the close
+	// frame must not keep the plugin from unloading.
+	lock.lock();
+	const bool drained = _sessionsDrained.wait_for(lock, kSessionDrainTimeout, [this] { return _sessions.empty(); });
+	if (!drained)
+		blog(LOG_WARNING, "[WebSocketServer::Stop] %zu session(s) still open after %lld ms, continuing shutdown: %s",
+		     _sessions.size(), static_cast<long long>(kSessionDrainTimeout.count()), DescribeSessions(_sessions).c_str());
+	lock.unlock();
 
 	_serverThread.join();
 
@@ -355,6 +380,9 @@ void WebSocketServer::onClose(websocketpp::connection_hdl hdl)
 	std::string remoteAddress = session->RemoteAddress();
 	_sessions.erase(hdl);
 	lock.unlock();
+
+	// Wake Stop() if it is waiting for the sessions to drain.
+	_sessionsDrained.notify_all();
 
 	// If client was identified, announce unsubscription
 	if (isIdentified && _clientSubscriptionCallback)
