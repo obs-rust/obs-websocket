@@ -498,28 +498,28 @@ void WebSocketServer::onMessage(websocketpp::connection_hdl hdl,
 
 	skipProcessing:
 		if (ret.closeCode != WebSocketCloseCode::DontClose) {
-			websocketpp::lib::error_code errorCode;
-			_server.close(hdl, ret.closeCode, ret.closeReason, errorCode);
+			websocketpp::lib::error_code closeErrorCode;
+			_server.close(hdl, ret.closeCode, ret.closeReason, closeErrorCode);
 			return;
 		}
 
 		if (!ret.result.is_null()) {
-			websocketpp::lib::error_code errorCode;
+			websocketpp::lib::error_code sendErrorCode;
 			if (sessionEncoding == WebSocketEncoding::Json) {
 				std::string helloMessageJson = ret.result.dump();
-				_server.send(hdl, helloMessageJson, websocketpp::frame::opcode::text, errorCode);
+				_server.send(hdl, helloMessageJson, websocketpp::frame::opcode::text, sendErrorCode);
 			} else if (sessionEncoding == WebSocketEncoding::MsgPack) {
 				auto msgPackData = json::to_msgpack(ret.result);
 				std::string messageMsgPack(msgPackData.begin(), msgPackData.end());
-				_server.send(hdl, messageMsgPack, websocketpp::frame::opcode::binary, errorCode);
+				_server.send(hdl, messageMsgPack, websocketpp::frame::opcode::binary, sendErrorCode);
 			}
 			session->IncrementOutgoingMessages();
 
 			blog_debug("[WebSocketServer::onMessage] Outgoing message:\n%s", ret.result.dump(2).c_str());
 
-			if (errorCode)
+			if (sendErrorCode)
 				blog(LOG_WARNING, "[WebSocketServer::onMessage] Sending message to client failed: %s",
-				     errorCode.message().c_str());
+				     sendErrorCode.message().c_str());
 		}
 	}));
 }
